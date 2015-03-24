@@ -165,10 +165,10 @@
         </prop>
         <node oor:name="UserDefinedImages">
           <prop oor:name="ImageSmallURL" oor:type="xs:string">
-            <value>%origin%/icons/icon_16.png</value>
+            <value>%origin%/icons/white-helmet-check-16.png</value>
           </prop>
           <prop oor:name="ImageBigURL" oor:type="xs:string">
-            <value>%origin%/icons/icon_24.png</value>
+            <value>%origin%/icons/white-helmet-check-24.png</value>
           </prop>
         </node>
       </node>

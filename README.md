@@ -17,6 +17,14 @@ Distributed under the GPLv2 license; please see the LICENSE file for
 details.
 
 
+White helmet and checkmark icon:
+Copyright 2015 Jared Jennings <jjennings@fastmail.fm>
+CC Attribution-ShareAlike 4.0 <http://creativecommons.org/licenses/by-sa/4.0/>
+Based on <https://www.flickr.com/photos/solhelmet/6719156327> by solhelmet
+and <http://pixabay.com/en/quality-hook-check-mark-ticked-off-500950/>
+
+
+
 Bundled libraries
 -----------------
 
