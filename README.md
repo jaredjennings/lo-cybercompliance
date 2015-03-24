@@ -11,7 +11,7 @@ Copyright 2015 Jared Jennings and Commons Machinery
 
 Author(s): Artem Popov <artfwo@commonsmachinery.se>,
            Peter Liljenberg <peter@commonsmachinery.se>,
-	   Jared Jennings
+	   Jared Jennings <jjennings@fastmail.fm>
 
 Distributed under the GPLv2 license; please see the LICENSE file for
 details.
