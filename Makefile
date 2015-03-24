@@ -11,7 +11,7 @@ SOURCES = \
 
 ADDITIONAL_PATHS = pythonpath icons
 
-EXTENSION = paste_with_credit.oxt
+EXTENSION = cybercompliance.oxt
 
 all: $(EXTENSION)
 
