@@ -591,7 +591,7 @@ class ContextInterceptor(unohelper.Base, XContextMenuInterceptor):
             if "image/png" in mimeTypes and "application/rdf+xml" in mimeTypes:
                 item = menu.createInstance("com.sun.star.ui.ActionTrigger")
                 item.setPropertyValue("Text", "Paste with credits")
-                item.setPropertyValue("CommandURL", u"se.commonsmachinery.extensions.paste_with_credit.Menu:PasteWithCredit")
+                item.setPropertyValue("CommandURL", u"info.securityrules.extensions.cybercompliance.Menu:PasteWithCredit")
                 menu_items.append(item)
 
         # selection can be None in Draw and Impress sometimes
@@ -604,7 +604,7 @@ class ContextInterceptor(unohelper.Base, XContextMenuInterceptor):
             if img_name.startswith("$metadata-tag-do-not-edit$"):
                 item = menu.createInstance("com.sun.star.ui.ActionTrigger")
                 item.setPropertyValue("Text", "Copy with credits")
-                item.setPropertyValue("CommandURL", u"se.commonsmachinery.extensions.paste_with_credit.Menu:CopyWithMetadata")
+                item.setPropertyValue("CommandURL", u"info.securityrules.extensions.cybercompliance.Menu:CopyWithMetadata")
                 menu_items.append(item)
 
         if len(menu_items) > 0:
@@ -646,7 +646,7 @@ class MenuHandler(unohelper.Base, XInitialization, XDispatchProvider, XDispatch)
         pass
 
     def queryDispatch(self, url, target_frame_name, search_flags):
-        if url.Protocol == "se.commonsmachinery.extensions.paste_with_credit.Menu:":
+        if url.Protocol == "info.securityrules.extensions.cybercompliance.Menu:":
             return self
         return None
 
@@ -655,7 +655,7 @@ class MenuHandler(unohelper.Base, XInitialization, XDispatchProvider, XDispatch)
         return dispatches
 
     def dispatch(self, url, args):
-        if url.Protocol == "se.commonsmachinery.extensions.paste_with_credit.Menu:":
+        if url.Protocol == "info.securityrules.extensions.cybercompliance.Menu:":
             if url.Path == "CopyWithMetadata":
                 job = CopyWithMetadataJob(self.ctx)
                 job.trigger(None)
@@ -674,31 +674,31 @@ g_ImplementationHelper = unohelper.ImplementationHelper()
 
 g_ImplementationHelper.addImplementation(
     PasteWithCreditJob,
-    "se.commonsmachinery.extensions.paste_with_credit.PasteWithCreditJob",
+    "info.securityrules.extensions.cybercompliance.PasteWithCreditJob",
     ("com.sun.star.task.Job",)
 )
 
 g_ImplementationHelper.addImplementation(
     InsertCreditsJob,
-    "se.commonsmachinery.extensions.paste_with_credit.InsertCreditsJob",
+    "info.securityrules.extensions.cybercompliance.InsertCreditsJob",
     ("com.sun.star.task.Job",)
 )
 
 g_ImplementationHelper.addImplementation(
     CopyWithMetadataJob,
-    "se.commonsmachinery.extensions.paste_with_credit.CopyWithMetadataJob",
+    "info.securityrules.extensions.cybercompliance.CopyWithMetadataJob",
     ("com.sun.star.task.Job",)
 )
 
 g_ImplementationHelper.addImplementation(
     PluginInitJob,
-    "se.commonsmachinery.extensions.paste_with_credit.PluginInitJob",
+    "info.securityrules.extensions.cybercompliance.PluginInitJob",
     ("com.sun.star.task.Job",)
 )
 
 g_ImplementationHelper.addImplementation(
     MenuHandler,
-    "se.commonsmachinery.extensions.paste_with_credit.MenuHandler",
+    "info.securityrules.extensions.cybercompliance.MenuHandler",
     ("com.sun.star.frame.ProtocolHandler",)
 )
 
