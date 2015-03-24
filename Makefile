@@ -7,7 +7,7 @@ SOURCES = \
 	Jobs.xcu \
 	ProtocolHandler.xcu \
 	Accelerators.xcu \
-	cm-paste.py
+	cybercompliance.py
 
 ADDITIONAL_PATHS = pythonpath icons
 
