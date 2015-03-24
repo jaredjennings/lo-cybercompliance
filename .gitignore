@@ -1,3 +1,4 @@
+*.oxt
 *.py[cod]
 
 # C extensions
