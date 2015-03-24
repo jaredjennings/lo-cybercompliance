@@ -15,7 +15,7 @@ EXTENSION = cybercompliance.oxt
 
 all: $(EXTENSION)
 
-$(EXTENSION):
+$(EXTENSION): $(SOURCES)
 	zip -r $(EXTENSION) \
 		$(SOURCES) \
 		$(ADDITIONAL_PATHS)
