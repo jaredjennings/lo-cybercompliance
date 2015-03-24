@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#!/usr/bin/python
 #
 # lo-cybercompliance - LibreOffice extension for indicating compliance
 # with named security requirements.
@@ -13,7 +13,6 @@
 # Distributed under the GPLv2 license; please see the LICENSE file for
 # details.
 
-import libcredit
 from xml.dom import minidom
 import tempfile, os
 import uuid
@@ -116,7 +115,7 @@ def get_image_metadata(ctx, model, name):
     return str(ss)
 
 
-class LOCreditFormatter(libcredit.CreditFormatter):
+class LOCreditFormatter(object):
     """
     Credit writer that adds text to LibreOffice writer document using UNO.
     """
@@ -267,6 +266,62 @@ class Metadata(object):
                 s.Predicate.StringValue,
                 obj, g))
 
+
+class DocumentsJob(unohelper.Base, XJobExecutor):
+    def __init__(self, ctx):
+        self.ctx = ctx
+
+    def trigger(self, args):
+        print('hi')
+        desktop = self.ctx.ServiceManager.createInstanceWithContext(
+            "com.sun.star.frame.Desktop", self.ctx)
+
+        model = desktop.getCurrentComponent()
+        controller = model.getCurrentController()
+
+        if model.supportsService("com.sun.star.text.TextDocument"):
+            # Metadata is only supported in text documents
+            metadata = Metadata(self.ctx, model)
+
+            # create a frame to hold the image with caption
+            text_frame = model.createInstance("com.sun.star.text.TextFrame")
+            text_frame.setSize(Size(15000,400))
+            text_frame.setPropertyValue("AnchorType", AT_PARAGRAPH)
+
+            # duplicate current cursor
+            view_cursor = controller.getViewCursor()
+            cursor = view_cursor.getText().createTextCursorByRange(view_cursor)
+            cursor.gotoStartOfSentence(False)
+            cursor.gotoEndOfSentence(True)
+
+            # insert text frame
+            text = model.Text
+            text.insertTextContent(cursor, text_frame, 0)
+            frame_text = text_frame.getText()
+
+            cursor = frame_text.createTextCursor()
+
+            frame_text.insertString(cursor, "nyah", False)
+
+            # Add a <text:bookmark> tag to serve as anchor for the RDF
+            # and give us a subject URI.  Ideally, we would get this
+            # from the image but that isn't possible with current
+            # APIs.
+
+            bookmark = model.createInstance("com.sun.star.text.Bookmark")
+            frame_text.insertTextContent(cursor, bookmark, False)
+            bookmark.ensureMetadataReference()
+            bookmark.setName(BOOKMARK_BASE_NAME + bookmark.LocalName)
+            cursor.gotoEnd(False)
+
+            # add the credit as text below the image
+            #credit = libcredit.Credit(rdf)
+            #credit_writer = LOCreditFormatter(frame_text, cursor, metadata = metadata)
+            #credit.format(credit_writer, subject_uri = bookmark.StringValue)
+
+            # DEBUG:
+            metadata.dump_graph()
+            
 
 class PasteWithCreditJob(unohelper.Base, XJobExecutor):
     def __init__(self, ctx):
@@ -624,83 +679,15 @@ class ContextInterceptor(unohelper.Base, XContextMenuInterceptor):
         return IGNORED
 
 
-class PluginInitJob(unohelper.Base, XJob):
-    def __init__(self, ctx):
-        self.ctx = ctx
-
-    def execute(self, args):
-        desktop = self.ctx.ServiceManager.createInstanceWithContext(
-            "com.sun.star.frame.Desktop", self.ctx)
-
-        model = desktop.getCurrentComponent()
-        controller = model.getCurrentController()
-        context_interceptor = ContextInterceptor(self.ctx)
-        controller.registerContextMenuInterceptor(context_interceptor)
-
-
-class MenuHandler(unohelper.Base, XInitialization, XDispatchProvider, XDispatch):
-    def __init__(self, ctx):
-        self.ctx = ctx
-
-    def initialize(self, args):
-        pass
-
-    def queryDispatch(self, url, target_frame_name, search_flags):
-        if url.Protocol == "info.securityrules.extensions.cybercompliance.Menu:":
-            return self
-        return None
-
-    def queryDispatches(self, requests):
-        dispatches = [self.queryDispatch(r.FeatureURL, r.FrameName, r.SearchFlags) for r in requests]
-        return dispatches
-
-    def dispatch(self, url, args):
-        if url.Protocol == "info.securityrules.extensions.cybercompliance.Menu:":
-            if url.Path == "CopyWithMetadata":
-                job = CopyWithMetadataJob(self.ctx)
-                job.trigger(None)
-            elif url.Path == "PasteWithCredit":
-                job = PasteWithCreditJob(self.ctx)
-                job.trigger(None)
-
-    def addStatusListener(self, control, url):
-        pass
-
-    def removeStatusListener(self, control, url):
-        pass
-
 
 g_ImplementationHelper = unohelper.ImplementationHelper()
 
 g_ImplementationHelper.addImplementation(
-    PasteWithCreditJob,
-    "info.securityrules.extensions.cybercompliance.PasteWithCreditJob",
-    ("com.sun.star.task.Job",)
+    DocumentsJob,
+    'info.securityrules.extensions.cybercompliance.DocumentsJob',
+    ('com.sun.star.task.Job',)
 )
 
-g_ImplementationHelper.addImplementation(
-    InsertCreditsJob,
-    "info.securityrules.extensions.cybercompliance.InsertCreditsJob",
-    ("com.sun.star.task.Job",)
-)
-
-g_ImplementationHelper.addImplementation(
-    CopyWithMetadataJob,
-    "info.securityrules.extensions.cybercompliance.CopyWithMetadataJob",
-    ("com.sun.star.task.Job",)
-)
-
-g_ImplementationHelper.addImplementation(
-    PluginInitJob,
-    "info.securityrules.extensions.cybercompliance.PluginInitJob",
-    ("com.sun.star.task.Job",)
-)
-
-g_ImplementationHelper.addImplementation(
-    MenuHandler,
-    "info.securityrules.extensions.cybercompliance.MenuHandler",
-    ("com.sun.star.frame.ProtocolHandler",)
-)
 
 if __name__ == "__main__":
     import sys
@@ -716,7 +703,11 @@ if __name__ == "__main__":
     smgr = ctx.ServiceManager
 
     cmd = sys.argv[1]
-    if cmd == 'paste':
+    if cmd == 'documents':
+        job = DocumentsJob(ctx)
+        job.trigger(None)
+
+    elif cmd == 'paste':
         job = PasteWithCreditJob(ctx)
         job.trigger(None)
 
