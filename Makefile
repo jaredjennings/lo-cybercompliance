@@ -4,8 +4,6 @@ SOURCES = \
 	description.xml \
 	META-INF/manifest.xml \
 	Addons.xcu \
-	Jobs.xcu \
-	ProtocolHandler.xcu \
 	Accelerators.xcu \
 	cybercompliance.py
 
