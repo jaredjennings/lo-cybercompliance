@@ -1,13 +1,17 @@
 #! /usr/bin/python3
 #
-# lo-paste-with-credit - LibreOffice extensions for pasting images with metadata
+# lo-cybercompliance - LibreOffice extension for indicating compliance
+# with named security requirements.
 #
-# Copyright 2013-2014 Commons Machinery http://commonsmachinery.se/
+# Copyright 2015 Jared Jennings and Commons Machinery
+#                <http://commonsmachinery.se/>
 #
-# Authors: Artem Popov <artfwo@commonsmachinery.se>
-#          Peter Liljenberg <peter@commonsmachinery.se>
+# Author(s): Artem Popov <artfwo@commonsmachinery.se>,
+#            Peter Liljenberg <peter@commonsmachinery.se>,
+#            Jared Jennings <jjennings@fastmail.fm>
 #
-# Distributed under an GPLv2 license, please see LICENSE in the top dir.
+# Distributed under the GPLv2 license; please see the LICENSE file for
+# details.
 
 import libcredit
 from xml.dom import minidom
