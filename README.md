@@ -1,59 +1,26 @@
-lo-paste-with-credit
-====================
+lo-cybercompliance
+==================
 
-LibreOffice extension for pasting images with automatic attribution.
-
-This extension requires CopyRDF browser addon to work properly. Get it here:
-https://github.com/commonsmachinery/copyrdf-addon
-
-Installation
-------------
-
-1. Download `paste_with_credit.oxt`;
-1. In LibreOffice go to "Tools->Extension Manager...";
-2. Click "Add..."  and choose `paste-with-credit.oxt`.
-
-Usage
------
-
-To paste an image and automatically add credits:
-
-1. Copy an image with credits from Firefox.
-2. Paste via "Edit->Paste with credits" or click "Paste with credits" button
-   next to the regular Paste button on the toolbar.
-
-Note: Credits won't show in Impress, see below for how to make them visible.
-
-To copy image with credit metadata back to clipboard (Writer-only):
-
-1. Right-click the image.
-2. Choose "Copy with credits"
-
-To generate a credits block in Impress:
-
-1. Paste one or more images using "Edit->Paste with credits"
-2. Choose "Insert->Credits" from the main menu.
+LibreOffice extension for indicating compliance with named security requirements.
 
 License
 -------
 
-Copyright 2013 Commons Machinery http://commonsmachinery.se/
+Copyright 2015 Jared Jennings and Commons Machinery
+               <http://commonsmachinery.se/>
 
 Author(s): Artem Popov <artfwo@commonsmachinery.se>,
-           Peter Liljenberg <peter@commonsmachinery.se>
+           Peter Liljenberg <peter@commonsmachinery.se>,
+	   Jared Jennings
 
-Distributed under an GPLv2 license, please see the LICENSE file for details.
-
-Icon by Ilsur Aptukov from The Noun Project
-Published at http://www.thenounproject.com/term/clipboard/28307/
-Licensed under Creative Commons Attribution 3.0 license
-for more information see http://creativecommons.org/licenses/by/3.0/us/
+Distributed under the GPLv2 license; please see the LICENSE file for
+details.
 
 
 Bundled libraries
 -----------------
 
-The extension package (`paste_with_credit.oxt`) includes the following libraries:
+The extension package includes the following libraries:
 
 **libcredit**
 
