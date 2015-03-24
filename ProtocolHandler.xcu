@@ -4,10 +4,10 @@
     Handlers
   -->
   <node oor:name="HandlerSet">
-    <node oor:name="se.commonsmachinery.extensions.paste_with_credit.MenuHandler"
+    <node oor:name="info.securityrules.extensions.cybercompliance.MenuHandler"
           oor:op="replace">
       <prop oor:name="Protocols" oor:type="oor:string-list">
-        <value>se.commonsmachinery.extensions.paste_with_credit.Menu:*</value>
+        <value>info.securityrules.extensions.cybercompliance.Menu:*</value>
       </prop>
     </node>
   </node>

@@ -4,12 +4,12 @@
     xmlns:l="http://libreoffice.org/extensions/description/2011"
     xmlns:xlink="http://www.w3.org/1999/xlink">
   <version value="0.3.5"/>
-  <identifier value="se.commonsmachinery.extensions.paste_with_credit"/>
+  <identifier value="info.securityrules.extensions.cybercompliance"/>
   <platform value="all"/>
   <dependencies>
     <OpenOffice.org-minimal-version value="3.3" d:name="OpenOffice.org 3.3"/>
   </dependencies>
   <display-name>
-    <name lang="en">Paste with credits</name>
+    <name lang="en">Cyber compliance</name>
   </display-name>
 </description>
