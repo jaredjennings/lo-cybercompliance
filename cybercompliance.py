@@ -43,6 +43,7 @@ from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.TextContentAnchorType import AS_CHARACTER
 from com.sun.star.text.TextContentAnchorType import AT_PARAGRAPH
 from com.sun.star.rdf.FileFormat import RDF_XML
+from com.sun.star.rdf.URIs import ODF_PREFIX
 from com.sun.star.ui.ActionTriggerSeparatorType import LINE
 
 from com.sun.star.container import NoSuchElementException
@@ -54,8 +55,8 @@ BOOKMARK_BASE_NAME = "$metadata-tag-do-not-edit$"
 class Metadata(object):
     """Helper functions for working with the RDF metadata APIs"""
 
-    GRAPH_FILE = 'metadata/sources.rdf'
-    GRAPH_TYPE_URI = 'http://purl.org/dc/terms/ProvenanceStatement'
+    GRAPH_FILE = 'metadata/cybercompliance.rdf'
+    GRAPH_TYPE_URI = 'http://securityrules.info/ns/cybercompliance/1#ComplianceStatements'
 
     def __init__(self, ctx, model):
         self.ctx = ctx
@@ -114,6 +115,10 @@ class Metadata(object):
 
 
 class DocumentsJob(unohelper.Base, XJobExecutor):
+
+    DOCUMENTS = 'http://securityrules.info/ns/cybercompliance/1#documents'
+    TEXT_PREFIX = 'Documents '
+
     def __init__(self, ctx):
         self.ctx = ctx
 
@@ -129,42 +134,42 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
             # Metadata is only supported in text documents
             metadata = Metadata(self.ctx, model)
 
-            # create a frame to hold the image with caption
-            text_frame = model.createInstance("com.sun.star.text.TextFrame")
-            text_frame.setSize(Size(15000,400))
-            text_frame.setPropertyValue("AnchorType", AT_PARAGRAPH)
-
             # duplicate current cursor
             view_cursor = controller.getViewCursor()
             cursor = view_cursor.getText().createTextCursorByRange(view_cursor)
             cursor.gotoStartOfSentence(False)
-            cursor.gotoEndOfSentence(True)
-
-            # insert text frame
             text = model.Text
-            text.insertTextContent(cursor, text_frame, 0)
-            frame_text = text_frame.getText()
 
-            cursor = frame_text.createTextCursor()
+            text.insertString(cursor, "foo", False)
 
-            frame_text.insertString(cursor, "nyah", False)
+            metafield = model.createInstance("com.sun.star.text.textfield.MetadataField")
+            text.insertTextContent(cursor, metafield, False)
+            mfcursor = metafield.createTextCursor()
 
-            # Add a <text:bookmark> tag to serve as anchor for the RDF
-            # and give us a subject URI.  Ideally, we would get this
-            # from the image but that isn't possible with current
-            # APIs.
+            requirement_uri = 'http://example.com/placeholder'
+            requirement_name = 'placeholder'
+            metadata.add_statement(metafield,
+                                   metadata.uri(self.DOCUMENTS),
+                                   metadata.uri(requirement_uri))
+            metadata.add_statement(metafield,
+                                   metadata.uri(ODF_PREFIX),
+                                   metadata.literal(self.TEXT_PREFIX + 'placeholder'))
 
-            bookmark = model.createInstance("com.sun.star.text.Bookmark")
-            frame_text.insertTextContent(cursor, bookmark, False)
-            bookmark.ensureMetadataReference()
-            bookmark.setName(BOOKMARK_BASE_NAME + bookmark.LocalName)
-            cursor.gotoEnd(False)
+            
+            # # Add a <text:bookmark> tag to serve as anchor for the RDF
+            # # and give us a subject URI.
 
-            # add the credit as text below the image
-            #credit = libcredit.Credit(rdf)
-            #credit_writer = LOCreditFormatter(frame_text, cursor, metadata = metadata)
-            #credit.format(credit_writer, subject_uri = bookmark.StringValue)
+            # bookmark = model.createInstance("com.sun.star.text.Bookmark")
+            # text.insertTextContent(cursor, bookmark, False)
+            # bookmark.ensureMetadataReference()
+            # bookmark.setName(BOOKMARK_BASE_NAME + bookmark.LocalName)
 
+            text.insertString(cursor, "bar", False)
+
+            # metadata.add_statement(metadata.uri(bookmark.StringValue),
+            #                        metadata.uri(self.DOCUMENTS),
+            #                        metadata.literal('placeholder'))
+                                   
             # DEBUG:
             metadata.dump_graph()
             
