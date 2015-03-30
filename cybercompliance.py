@@ -48,7 +48,6 @@ from com.sun.star.ui.ActionTriggerSeparatorType import LINE
 
 from com.sun.star.container import NoSuchElementException
 
-
 BOOKMARK_BASE_NAME = "$metadata-tag-do-not-edit$"
 
 
@@ -123,7 +122,6 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
         self.ctx = ctx
 
     def trigger(self, args):
-        print('hi')
         desktop = self.ctx.ServiceManager.createInstanceWithContext(
             "com.sun.star.frame.Desktop", self.ctx)
 
@@ -131,6 +129,23 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
         controller = model.getCurrentController()
 
         if model.supportsService("com.sun.star.text.TextDocument"):
+            clip = self.ctx.ServiceManager.createInstanceWithContext(
+                "com.sun.star.datatransfer.clipboard.SystemClipboard", self.ctx)
+            contents = clip.getContents()
+            data_flavors = contents.getTransferDataFlavors()
+            mimeTypes = [d.MimeType for d in data_flavors]
+            if 'text/plain' in mimeTypes:
+                text_clip = next(d for d in data_flavors if d.MimeType == 'text/plain')
+                text = clip.getContents().getTransferData(text_clip).value
+                if text.startswith('http://') or text.startswith('https://'):
+                    requirement_uri = text
+                    requirement_name = text.split('/')[-1]
+                else:
+                    return
+            else:
+                return
+                
+
             # Metadata is only supported in text documents
             metadata = Metadata(self.ctx, model)
 
@@ -146,30 +161,16 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
             text.insertTextContent(cursor, metafield, False)
             mfcursor = metafield.createTextCursor()
 
-            requirement_uri = 'http://example.com/placeholder'
-            requirement_name = 'placeholder'
             metadata.add_statement(metafield,
                                    metadata.uri(self.DOCUMENTS),
                                    metadata.uri(requirement_uri))
             metadata.add_statement(metafield,
                                    metadata.uri(ODF_PREFIX),
-                                   metadata.literal(self.TEXT_PREFIX + 'placeholder'))
+                                   metadata.literal(self.TEXT_PREFIX + requirement_name))
 
             
-            # # Add a <text:bookmark> tag to serve as anchor for the RDF
-            # # and give us a subject URI.
-
-            # bookmark = model.createInstance("com.sun.star.text.Bookmark")
-            # text.insertTextContent(cursor, bookmark, False)
-            # bookmark.ensureMetadataReference()
-            # bookmark.setName(BOOKMARK_BASE_NAME + bookmark.LocalName)
-
             text.insertString(cursor, "bar", False)
 
-            # metadata.add_statement(metadata.uri(bookmark.StringValue),
-            #                        metadata.uri(self.DOCUMENTS),
-            #                        metadata.literal('placeholder'))
-                                   
             # DEBUG:
             metadata.dump_graph()
             
