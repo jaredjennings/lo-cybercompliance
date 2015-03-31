@@ -134,9 +134,10 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
             contents = clip.getContents()
             data_flavors = contents.getTransferDataFlavors()
             mimeTypes = [d.MimeType for d in data_flavors]
-            if 'text/plain' in mimeTypes:
-                text_clip = next(d for d in data_flavors if d.MimeType == 'text/plain')
-                text = clip.getContents().getTransferData(text_clip).value
+            if 'text/plain;charset=utf-8' in mimeTypes:
+                text_clip = next(d for d in data_flavors
+                                 if d.MimeType == 'text/plain;charset=utf-8')
+                text = clip.getContents().getTransferData(text_clip).value.decode('UTF-8')
                 if text.startswith('http://') or text.startswith('https://'):
                     requirement_uri = text
                     requirement_name = text.split('/')[-1]
