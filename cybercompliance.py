@@ -116,7 +116,7 @@ class Metadata(object):
 class DocumentsJob(unohelper.Base, XJobExecutor):
 
     DOCUMENTS = 'http://securityrules.info/ns/cybercompliance/1#documents'
-    TEXT_PREFIX = 'Documents '
+    TEXT_PREFIX = 'In accordance with '
 
     def __init__(self, ctx):
         self.ctx = ctx
@@ -156,7 +156,7 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
             cursor.gotoStartOfSentence(False)
             text = model.Text
 
-            text.insertString(cursor, "foo", False)
+            text.insertString(cursor, "(", False)
 
             metafield = model.createInstance("com.sun.star.text.textfield.MetadataField")
             text.insertTextContent(cursor, metafield, False)
@@ -170,7 +170,7 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
                                    metadata.literal(self.TEXT_PREFIX + requirement_name))
 
             
-            text.insertString(cursor, "bar", False)
+            text.insertString(cursor, ")", False)
 
             # DEBUG:
             metadata.dump_graph()
