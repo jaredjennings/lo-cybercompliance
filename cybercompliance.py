@@ -16,6 +16,7 @@
 from xml.dom import minidom
 import tempfile, os
 import uuid
+import time
 
 import uno
 import unohelper
@@ -38,6 +39,8 @@ from com.sun.star.ui import XContextMenuInterceptor
 from com.sun.star.ui.ContextMenuInterceptorAction import IGNORED
 from com.sun.star.ui.ContextMenuInterceptorAction import EXECUTE_MODIFIED
 from com.sun.star.ui.ContextMenuInterceptorAction import CONTINUE_MODIFIED
+
+from com.sun.star.datatransfer.dnd import XDropTargetListener
 
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.TextContentAnchorType import AS_CHARACTER
@@ -176,6 +179,24 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
             metadata.dump_graph()
             
 
+# http://www.oooforum.org/forum/viewtopic.phtml?t=82016
+# https://www.openoffice.org/api/docs/common/ref/com/sun/star/datatransfer/dnd/module-ix.html
+
+class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
+    def __getattr__(self, name):
+        print(name)
+        return super(DTLCyberCompliance, self).__getattr__(self, name)
+    def drop(self, event):
+        print("drop")
+    def dragEnter(self, event):
+        print("dragEnter")
+    def dragExit(self, event):
+        print("dragExit")
+    def dragOver(self, event):
+        print("dragOver")
+    def dropActionChanged(self, event):
+        print("dropActionChanged")
+
 
 g_ImplementationHelper = unohelper.ImplementationHelper()
 
@@ -204,6 +225,16 @@ if __name__ == "__main__":
         job = DocumentsJob(ctx)
         job.trigger(None)
 
+    elif cmd == 'drop':
+        desktop = smgr.createInstanceWithContext(
+            "com.sun.star.frame.Desktop", ctx)
+        model = desktop.getCurrentComponent()
+        panel = model.CurrentController.Frame.ComponentWindow.AccessibleContext
+        pane = panel.getAccessibleChild(0)
+        docview = pane.AccessibleContext.getAccessibleChild(0)
+        pane.Toolkit.getDropTarget(pane).addDropTargetListener(DTLCyberCompliance())
+        time.sleep(30)
+        print dir(panel)
     else:
         print("unknown command", cmd)
 
