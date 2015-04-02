@@ -17,6 +17,7 @@ from xml.dom import minidom
 import tempfile, os
 import uuid
 import time
+import pprint
 
 import uno
 import unohelper
@@ -41,6 +42,7 @@ from com.sun.star.ui.ContextMenuInterceptorAction import EXECUTE_MODIFIED
 from com.sun.star.ui.ContextMenuInterceptorAction import CONTINUE_MODIFIED
 
 from com.sun.star.datatransfer.dnd import XDropTargetListener
+from com.sun.star.datatransfer.dnd.DNDConstants import ACTION_COPY
 
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.TextContentAnchorType import AS_CHARACTER
@@ -181,19 +183,51 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
 
 # http://www.oooforum.org/forum/viewtopic.phtml?t=82016
 # https://www.openoffice.org/api/docs/common/ref/com/sun/star/datatransfer/dnd/module-ix.html
-
+#
+# the Context of an event we receive contains the methods that we call
+# to make things happen or not happen regarding the drag or drop
 class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
-    def __getattr__(self, name):
-        print(name)
-        return super(DTLCyberCompliance, self).__getattr__(self, name)
+    SUPPORTED_MIME_TYPES = (
+        'text/uri-list',
+    )
     def drop(self, event):
-        print("drop")
+        print 'drop'
+        print event
+        t = event.Transferable # has the data to be dropped
+        for x in t.getTransferDataFlavors():
+            print x
+        for flavor in t.getTransferDataFlavors():
+            print flavor
+            if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
+                # FIXME: maybe ACTION_COPY is not in event.SourceActions
+                # or event.DropAction?
+                event.Context.acceptDrop(ACTION_COPY)
+                data = t.getTransferData(flavor)
+                print "data is", data
+                event.Context.dropComplete(True)
+                break
+        else:
+            print "rejected!"
+            event.Context.rejectDrop()
+
     def dragEnter(self, event):
-        print("dragEnter")
+        print "dragEnter"
+        print event.DropAction
+        print event.SourceActions
+        for flavor in event.SupportedDataFlavors:
+            print flavor.MimeType
+            if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
+                print "accepting!"
+                event.Context.acceptDrag(ACTION_COPY)
+                break
+        else:
+            print "rejected!"
+            event.Context.rejectDrag()
     def dragExit(self, event):
         print("dragExit")
     def dragOver(self, event):
-        print("dragOver")
+        print ".",
+        pass
     def dropActionChanged(self, event):
         print("dropActionChanged")
 
@@ -229,12 +263,41 @@ if __name__ == "__main__":
         desktop = smgr.createInstanceWithContext(
             "com.sun.star.frame.Desktop", ctx)
         model = desktop.getCurrentComponent()
-        panel = model.CurrentController.Frame.ComponentWindow.AccessibleContext
-        pane = panel.getAccessibleChild(0)
-        docview = pane.AccessibleContext.getAccessibleChild(0)
-        pane.Toolkit.getDropTarget(pane).addDropTargetListener(DTLCyberCompliance())
-        time.sleep(30)
-        print dir(panel)
+        panel = model.CurrentController.Frame.ComponentWindow
+        scroll_pane = panel.AccessibleContext.getAccessibleChild(0)
+        docview = scroll_pane.AccessibleContext.getAccessibleChild(0)
+        dtlcc = DTLCyberCompliance()
+        number_to_name = {
+            49: 'ROOT_PANE',
+            50: 'SCROLL_BAR',
+            51: 'SCROLL_PANE',
+            13: 'DOCUMENT',
+            56: 'SPLIT_PANE',
+            40: 'PANEL',
+            17: 'FILLER',
+            77: 'RULER',
+            13: 'DOCUMENT',
+            44: 'PUSH_BUTTON',
+        }
+        def for_self_droptarget_and_subwindows(w, methodname, depth, *args):
+            c = w.AccessibleContext
+            role = c.getAccessibleRole()
+            if role == 40:
+                dt = w.Toolkit.getDropTarget(w)
+                getattr(dt, methodname)(*args)
+            try:
+                for w_ in w.Windows:
+                    for_self_droptarget_and_subwindows(w_, methodname, depth+1, *args)
+            except AttributeError:
+                pass
+        for_self_droptarget_and_subwindows(panel, 'addDropTargetListener', 0, dtlcc)
+        print "installed"
+        try:
+            time.sleep(30)
+        except KeyboardInterrupt:
+            pass
+        print "removing"
+        for_self_droptarget_and_subwindows(panel, 'removeDropTargetListener', 0, dtlcc)
     else:
         print("unknown command", cmd)
 
@@ -242,3 +305,4 @@ if __name__ == "__main__":
     # process exits to sync the remote-bridge cache, otherwise an async call
     # may not terminate properly.
     ctx.ServiceManager
+
