@@ -18,6 +18,7 @@ import tempfile, os
 import uuid
 import time
 import pprint
+import sys
 
 import uno
 import unohelper
@@ -190,46 +191,54 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
     SUPPORTED_MIME_TYPES = (
         'text/uri-list',
     )
+    def __init__(self):
+        self.accepting = True
+        super(DTLCyberCompliance, self).__init__()
     def drop(self, event):
-        print 'drop'
-        print event
-        t = event.Transferable # has the data to be dropped
-        for x in t.getTransferDataFlavors():
-            print x
-        for flavor in t.getTransferDataFlavors():
-            print flavor
-            if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
-                # FIXME: maybe ACTION_COPY is not in event.SourceActions
-                # or event.DropAction?
-                event.Context.acceptDrop(ACTION_COPY)
-                data = t.getTransferData(flavor)
-                print "data is", data
-                event.Context.dropComplete(True)
-                break
-        else:
-            print "rejected!"
-            event.Context.rejectDrop()
+        try:
+            print 'drop'
+            t = event.Transferable # has the data to be dropped
+            for flavor in t.getTransferDataFlavors():
+                if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
+                    event.Context.acceptDrop(event.DropAction)
+                    data = t.getTransferData(flavor)
+                    print "data is", data
+                    event.Context.dropComplete(True)
+                    break
+            else:
+                print "rejected!"
+                event.Context.rejectDrop()
+        except Exception, e:
+            print e
 
     def dragEnter(self, event):
         print "dragEnter"
-        print event.DropAction
-        print event.SourceActions
         for flavor in event.SupportedDataFlavors:
-            print flavor.MimeType
             if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
                 print "accepting!"
-                event.Context.acceptDrag(ACTION_COPY)
+                self.accepting = True
+                event.Context.acceptDrag(event.DropAction)
                 break
         else:
             print "rejected!"
+            self.accepting = False
             event.Context.rejectDrag()
+
     def dragExit(self, event):
-        print("dragExit")
-    def dragOver(self, event):
-        print ".",
         pass
+
+    def dragOver(self, event):
+        # we should only have to accept it once in dragEnter - but
+        # sometimes it seems that is not enough. so accepting it here
+        # if we accepted it there should be superfluous but it appears
+        # to work and doesn't seem too slow.
+        if self.accepting:
+            event.Context.acceptDrag(event.DropAction)
+        else:
+            event.Context.rejectDrag()
+
     def dropActionChanged(self, event):
-        print("dropActionChanged")
+        pass
 
 
 g_ImplementationHelper = unohelper.ImplementationHelper()
@@ -293,7 +302,7 @@ if __name__ == "__main__":
         for_self_droptarget_and_subwindows(panel, 'addDropTargetListener', 0, dtlcc)
         print "installed"
         try:
-            time.sleep(30)
+            time.sleep(300000)
         except KeyboardInterrupt:
             pass
         print "removing"
