@@ -188,28 +188,74 @@ class DocumentsJob(unohelper.Base, XJobExecutor):
 # the Context of an event we receive contains the methods that we call
 # to make things happen or not happen regarding the drag or drop
 class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
+    DOCUMENTS = 'http://securityrules.info/ns/cybercompliance/1#documents'
+    TEXT_PREFIX = 'In accordance with '
+
     SUPPORTED_MIME_TYPES = (
-        'text/uri-list',
+        'text/plain;charset=utf-8',
     )
-    def __init__(self):
+
+    def __init__(self, ctx):
         self.accepting = True
+        self.ctx = ctx
         super(DTLCyberCompliance, self).__init__()
+
     def drop(self, event):
-        try:
-            print 'drop'
-            t = event.Transferable # has the data to be dropped
-            for flavor in t.getTransferDataFlavors():
-                if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
-                    event.Context.acceptDrop(event.DropAction)
-                    data = t.getTransferData(flavor)
-                    print "data is", data
-                    event.Context.dropComplete(True)
-                    break
-            else:
-                print "rejected!"
-                event.Context.rejectDrop()
-        except Exception, e:
-            print e
+        print 'drop'
+        t = event.Transferable # has the data to be dropped
+        for flavor in t.getTransferDataFlavors():
+#            print flavor, t.getTransferData(flavor)
+            if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
+                event.Context.acceptDrop(event.DropAction)
+                # the data is a ByteSequence; it has a value attribute
+                data = t.getTransferData(flavor).value
+                break
+        else:
+            print "rejected!"
+            event.Context.rejectDrop()
+            return
+        desktop = self.ctx.ServiceManager.createInstanceWithContext(
+            "com.sun.star.frame.Desktop", self.ctx)
+        model = desktop.getCurrentComponent()
+        controller = model.getCurrentController()
+        if not model.supportsService("com.sun.star.text.TextDocument"):
+            event.Context.dropComplete(False)
+            return
+        # text/uri-list specifies that the URIs in it are URIs not
+        # IRIs, so they will be ASCII, possibly with punycode and tons
+        # of percent-encoded stuff, but ASCII.
+        print repr(data)
+        text = bytes(data).decode('UTF-8')
+        print repr(text)
+        for line in text.split('\n'):
+            if line.startswith('http://') or line.startswith('https://'):
+                requirement_uri = line
+                requirement_name = line.split('/')[-1]
+                break
+        else:
+            event.Context.dropComplete(False)
+            return
+        # Metadata is only supported in text documents
+        metadata = Metadata(self.ctx, model)
+        # duplicate current cursor
+        view_cursor = controller.getViewCursor()
+        cursor = view_cursor.getText().createTextCursorByRange(view_cursor)
+        cursor.gotoStartOfSentence(False)
+        text = model.Text
+        text.insertString(cursor, "(", False)
+        metafield = model.createInstance("com.sun.star.text.textfield.MetadataField")
+        text.insertTextContent(cursor, metafield, False)
+        mfcursor = metafield.createTextCursor()
+        metadata.add_statement(metafield,
+                               metadata.uri(self.DOCUMENTS),
+                               metadata.uri(requirement_uri))
+        metadata.add_statement(metafield,
+                               metadata.uri(ODF_PREFIX),
+                               metadata.literal(self.TEXT_PREFIX + requirement_name))
+        text.insertString(cursor, ")", False)
+        # DEBUG:
+        metadata.dump_graph()
+        event.Context.dropComplete(True)
 
     def dragEnter(self, event):
         print "dragEnter"
@@ -275,7 +321,7 @@ if __name__ == "__main__":
         panel = model.CurrentController.Frame.ComponentWindow
         scroll_pane = panel.AccessibleContext.getAccessibleChild(0)
         docview = scroll_pane.AccessibleContext.getAccessibleChild(0)
-        dtlcc = DTLCyberCompliance()
+        dtlcc = DTLCyberCompliance(ctx)
         number_to_name = {
             49: 'ROOT_PANE',
             50: 'SCROLL_BAR',
