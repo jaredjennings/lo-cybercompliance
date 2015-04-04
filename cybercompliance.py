@@ -201,17 +201,14 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
         super(DTLCyberCompliance, self).__init__()
 
     def drop(self, event):
-        print 'drop'
         t = event.Transferable # has the data to be dropped
         for flavor in t.getTransferDataFlavors():
-#            print flavor, t.getTransferData(flavor)
             if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
                 event.Context.acceptDrop(event.DropAction)
                 # the data is a ByteSequence; it has a value attribute
                 data = t.getTransferData(flavor).value
                 break
         else:
-            print "rejected!"
             event.Context.rejectDrop()
             return
         desktop = self.ctx.ServiceManager.createInstanceWithContext(
@@ -224,9 +221,7 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
         # text/uri-list specifies that the URIs in it are URIs not
         # IRIs, so they will be ASCII, possibly with punycode and tons
         # of percent-encoded stuff, but ASCII.
-        print repr(data)
         text = bytes(data).decode('UTF-8')
-        print repr(text)
         for line in text.split('\n'):
             if line.startswith('http://') or line.startswith('https://'):
                 requirement_uri = line
@@ -258,15 +253,12 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
         event.Context.dropComplete(True)
 
     def dragEnter(self, event):
-        print "dragEnter"
         for flavor in event.SupportedDataFlavors:
             if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
-                print "accepting!"
                 self.accepting = True
                 event.Context.acceptDrag(event.DropAction)
                 break
         else:
-            print "rejected!"
             self.accepting = False
             event.Context.rejectDrag()
 
@@ -346,12 +338,12 @@ if __name__ == "__main__":
             except AttributeError:
                 pass
         for_self_droptarget_and_subwindows(panel, 'addDropTargetListener', 0, dtlcc)
-        print "installed"
+        print("installed")
         try:
             time.sleep(300000)
         except KeyboardInterrupt:
             pass
-        print "removing"
+        print("removing")
         for_self_droptarget_and_subwindows(panel, 'removeDropTargetListener', 0, dtlcc)
     else:
         print("unknown command", cmd)
