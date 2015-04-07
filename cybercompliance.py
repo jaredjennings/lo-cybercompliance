@@ -204,7 +204,6 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
         super(DTLCyberCompliance, self).__init__()
 
     def drop(self, event):
-        print('drop')
         t = event.Transferable # has the data to be dropped
         for flavor in t.getTransferDataFlavors():
             if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
@@ -213,7 +212,6 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
                 data = t.getTransferData(flavor).value
                 break
         else:
-            print("rejected!")
             event.Context.rejectDrop()
             return
         desktop = self.ctx.ServiceManager.createInstanceWithContext(
@@ -223,6 +221,10 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
         if not model.supportsService("com.sun.star.text.TextDocument"):
             event.Context.dropComplete(False)
             return
+        # It appears Firefox is not afraid to send UTF-8 over in a
+        # text/uri-list, even though the text/uri-list is only
+        # supposed to contain URIs, which in turn are only supposed to
+        # contain ASCII. Other browsers...?
         iri = bytes(data).decode('UTF-8')
         for line in iri.split('\n'):
             if line.startswith('http://') or line.startswith('https://'):
@@ -255,15 +257,12 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
         event.Context.dropComplete(True)
 
     def dragEnter(self, event):
-        print("dragEnter")
         for flavor in event.SupportedDataFlavors:
             if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
-                print("accepting!")
                 self.accepting = True
                 event.Context.acceptDrag(event.DropAction)
                 break
         else:
-            print("rejected!")
             self.accepting = False
             event.Context.rejectDrag()
 
