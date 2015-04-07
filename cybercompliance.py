@@ -19,6 +19,7 @@ import uuid
 import time
 import pprint
 import sys
+from contextlib import contextmanager
 
 import uno
 import unohelper
@@ -44,6 +45,8 @@ from com.sun.star.ui.ContextMenuInterceptorAction import CONTINUE_MODIFIED
 
 from com.sun.star.datatransfer.dnd import XDropTargetListener
 from com.sun.star.datatransfer.dnd.DNDConstants import ACTION_COPY
+
+from com.sun.star.accessibility.AccessibleRole import PANEL
 
 from com.sun.star.text.ControlCharacter import PARAGRAPH_BREAK
 from com.sun.star.text.TextContentAnchorType import AS_CHARACTER
@@ -201,17 +204,16 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
         super(DTLCyberCompliance, self).__init__()
 
     def drop(self, event):
-        print 'drop'
+        print('drop')
         t = event.Transferable # has the data to be dropped
         for flavor in t.getTransferDataFlavors():
-#            print flavor, t.getTransferData(flavor)
             if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
                 event.Context.acceptDrop(event.DropAction)
                 # the data is a ByteSequence; it has a value attribute
                 data = t.getTransferData(flavor).value
                 break
         else:
-            print "rejected!"
+            print("rejected!")
             event.Context.rejectDrop()
             return
         desktop = self.ctx.ServiceManager.createInstanceWithContext(
@@ -221,13 +223,8 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
         if not model.supportsService("com.sun.star.text.TextDocument"):
             event.Context.dropComplete(False)
             return
-        # text/uri-list specifies that the URIs in it are URIs not
-        # IRIs, so they will be ASCII, possibly with punycode and tons
-        # of percent-encoded stuff, but ASCII.
-        print repr(data)
-        text = bytes(data).decode('UTF-8')
-        print repr(text)
-        for line in text.split('\n'):
+        iri = bytes(data).decode('UTF-8')
+        for line in iri.split('\n'):
             if line.startswith('http://') or line.startswith('https://'):
                 requirement_uri = line
                 requirement_name = line.split('/')[-1]
@@ -258,15 +255,15 @@ class DTLCyberCompliance(unohelper.Base, XDropTargetListener):
         event.Context.dropComplete(True)
 
     def dragEnter(self, event):
-        print "dragEnter"
+        print("dragEnter")
         for flavor in event.SupportedDataFlavors:
             if flavor.MimeType in self.SUPPORTED_MIME_TYPES:
-                print "accepting!"
+                print("accepting!")
                 self.accepting = True
                 event.Context.acceptDrag(event.DropAction)
                 break
         else:
-            print "rejected!"
+            print("rejected!")
             self.accepting = False
             event.Context.rejectDrag()
 
@@ -295,6 +292,47 @@ g_ImplementationHelper.addImplementation(
     ('com.sun.star.task.Job',)
 )
 
+def subpanels_of(panel):
+    ac = panel.AccessibleContext
+    role = ac.getAccessibleRole()
+    if role == PANEL:
+        yield panel
+    try:
+        for w_ in panel.Windows:
+            for p in subpanels_of(w_):
+                yield p
+    except AttributeError:
+        pass
+
+def droptargets_of(panels):
+    for p in panels:
+        dt = p.Toolkit.getDropTarget(p)
+        yield dt
+
+def iterate_over_xelements(e):
+    while(e.hasMoreElements()):
+        yield e.nextElement()
+
+def all_panels_of_interest(ctx):
+    desktop = smgr.createInstanceWithContext(
+        "com.sun.star.frame.Desktop", ctx)
+    allComponents = desktop.getComponents().createEnumeration()
+    for model in iterate_over_xelements(allComponents):
+        panel = model.CurrentController.Frame.ComponentWindow
+        for p in subpanels_of(panel):
+            yield p
+
+@contextmanager
+def installed_drop_target_listener(ctx):
+    dtlcc = DTLCyberCompliance(ctx)
+    for dt in droptargets_of(all_panels_of_interest(ctx)):
+        dt.addDropTargetListener(dtlcc)
+    try:
+        yield
+    finally:
+        for dt in droptargets_of(all_panels_of_interest(ctx)):
+            dt.removeDropTargetListener(dtlcc)
+    
 
 if __name__ == "__main__":
     import sys
@@ -315,44 +353,13 @@ if __name__ == "__main__":
         job.trigger(None)
 
     elif cmd == 'drop':
-        desktop = smgr.createInstanceWithContext(
-            "com.sun.star.frame.Desktop", ctx)
-        model = desktop.getCurrentComponent()
-        panel = model.CurrentController.Frame.ComponentWindow
-        scroll_pane = panel.AccessibleContext.getAccessibleChild(0)
-        docview = scroll_pane.AccessibleContext.getAccessibleChild(0)
-        dtlcc = DTLCyberCompliance(ctx)
-        number_to_name = {
-            49: 'ROOT_PANE',
-            50: 'SCROLL_BAR',
-            51: 'SCROLL_PANE',
-            13: 'DOCUMENT',
-            56: 'SPLIT_PANE',
-            40: 'PANEL',
-            17: 'FILLER',
-            77: 'RULER',
-            13: 'DOCUMENT',
-            44: 'PUSH_BUTTON',
-        }
-        def for_self_droptarget_and_subwindows(w, methodname, depth, *args):
-            c = w.AccessibleContext
-            role = c.getAccessibleRole()
-            if role == 40:
-                dt = w.Toolkit.getDropTarget(w)
-                getattr(dt, methodname)(*args)
+        with installed_drop_target_listener(ctx):
+            print("installed")
             try:
-                for w_ in w.Windows:
-                    for_self_droptarget_and_subwindows(w_, methodname, depth+1, *args)
-            except AttributeError:
+                time.sleep(300000)
+            except KeyboardInterrupt:
                 pass
-        for_self_droptarget_and_subwindows(panel, 'addDropTargetListener', 0, dtlcc)
-        print "installed"
-        try:
-            time.sleep(300000)
-        except KeyboardInterrupt:
-            pass
-        print "removing"
-        for_self_droptarget_and_subwindows(panel, 'removeDropTargetListener', 0, dtlcc)
+            print("removing")
     else:
         print("unknown command", cmd)
 
